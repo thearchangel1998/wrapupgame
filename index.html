@@ -40,7 +40,6 @@
         }
         .btn-primary { background-color: #0ea5e9; color: white; }
         .btn-secondary { background-color: #0d9488; color: white; }
-        .btn-accent { background-color: #fb923c; color: white; }
         .btn-gray { background-color: #64748b; color: white;}
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
@@ -89,7 +88,6 @@
                 <p id="feedback" class="text-2xl font-bold mb-4"></p>
                 <div id="analysis-box"><p id="analysis-text" class="text-slate-700"></p></div>
             </div>
-             <button id="next-btn" class="btn btn-accent mt-6 hidden">Next Question</button>
         </div>
         
         <!-- End Screen -->
@@ -132,15 +130,20 @@
 
         // --- Firebase Initialization ---
         let app, auth, db;
+        let firebaseInitialized = false;
         try {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            await signInAnonymously(auth);
-            console.log("Firebase initialized and user signed in anonymously.");
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                await signInAnonymously(auth);
+                firebaseInitialized = true;
+                console.log("Firebase initialized and user signed in anonymously.");
+            } else {
+                console.error("Firebase config is missing or empty. Leaderboard will be disabled.");
+            }
         } catch (error) {
             console.error("Firebase initialization error:", error);
-            // Hiển thị lỗi cho người dùng nếu cần
         }
         
         const scoreCollectionPath = `artifacts/${appId}/public/data/scores`;
@@ -161,7 +164,6 @@
         const leaderboardScreen = document.getElementById('leaderboard-screen');
         
         const startBtn = document.getElementById('start-btn');
-        const nextBtn = document.getElementById('next-btn');
         const restartBtn = document.getElementById('restart-btn');
         const leaderboardBtn = document.getElementById('leaderboard-btn');
         const viewLeaderboardEndBtn = document.getElementById('view-leaderboard-end-btn');
@@ -190,7 +192,6 @@
 
         // --- Event Listeners ---
         startBtn.addEventListener('click', startGame);
-        nextBtn.addEventListener('click', nextQuestion);
         restartBtn.addEventListener('click', () => showScreen('start-screen'));
         leaderboardBtn.addEventListener('click', showLeaderboard);
         viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
@@ -223,7 +224,6 @@
         
         function displayQuestion() {
             feedbackContainer.classList.add('hidden');
-            nextBtn.classList.add('hidden');
 
             const question = shuffledQuestions[currentQuestionIndex];
             vietnameseLineEl.textContent = `Original: ${question.vietnamese}`;
@@ -257,8 +257,9 @@
             feedbackContainer.classList.remove('hidden');
             
             Array.from(choicesEl.children).forEach(button => button.disabled = true);
-            nextBtn.classList.remove('hidden');
             updateScoreboard();
+
+            setTimeout(nextQuestion, 1000); // Automatically move to the next question after 1 second
         }
 
         function nextQuestion() {
@@ -282,6 +283,10 @@
         }
         
         async function saveScoreToFirestore(name, finalScore, timeInSeconds) {
+            if (!firebaseInitialized) {
+                console.log("Firebase not configured. Score was not saved.");
+                return;
+            }
             try {
                 await addDoc(collection(db, scoreCollectionPath), {
                     name: name,
@@ -297,6 +302,10 @@
 
         async function showLeaderboard() {
             showScreen('leaderboard-screen');
+            if (!firebaseInitialized) {
+                leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Leaderboard is unavailable. Firebase not configured.</td></tr>';
+                return;
+            }
             leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
 
             try {
