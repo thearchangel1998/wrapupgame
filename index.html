@@ -59,73 +59,103 @@
             margin-bottom: 1rem;
         }
         .table-container { max-height: 400px; overflow-y: auto; }
+        .bonus-popup {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            animation: fadeIn 0.3s ease;
+        }
+        .bonus-popup-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+            transform: scale(0.95);
+            animation: scaleIn 0.3s ease forwards;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <div id="game-container" class="game-container">
-        <!-- Start Screen -->
-        <div id="start-screen">
-            <h1 class="text-4xl font-bold text-slate-800 mb-4">Game: Guess the Translator</h1>
-            <p class="text-lg text-slate-600 mb-6">Enter your name to start and get on the leaderboard!</p>
-            <input type="text" id="player-name-input" placeholder="Enter your full name...">
-            <button id="start-btn" class="btn btn-primary text-xl">Start!</button>
-            <button id="leaderboard-btn" class="btn btn-secondary">View Leaderboard</button>
-        </div>
-
-        <!-- Game Screen -->
-        <div id="game-screen" class="hidden">
-            <div class="mb-6 flex justify-between items-center">
-                <div>
-                     <p id="question-counter" class="text-sm font-semibold text-slate-500 text-left"></p>
-                     <p id="score" class="text-xl font-bold text-slate-700 text-left"></p>
-                </div>
-                 <p id="timer" class="timer text-xl"></p>
-            </div>
-            <p id="vietnamese-line" class="mb-2"></p>
-            <p id="english-line" class="mb-6"></p>
-            <div id="choices"></div>
-            <div id="feedback-container" class="hidden mt-6">
-                <p id="feedback" class="text-2xl font-bold mb-4"></p>
-                <div id="analysis-box"><p id="analysis-text" class="text-slate-700"></p></div>
-            </div>
-        </div>
-        
-        <!-- End Screen -->
-        <div id="end-screen" class="hidden">
-            <h1 class="text-4xl font-bold text-slate-800 mb-4">Game Over!</h1>
-            <p id="final-score" class="text-2xl text-slate-600 mb-2"></p>
-            <p id="final-time" class="text-2xl text-slate-600 mb-8"></p>
-            <button id="view-leaderboard-end-btn" class="btn btn-secondary">View Leaderboard</button>
-            <button id="restart-btn" class="btn btn-primary text-xl">Play Again</button>
-        </div>
-
-        <!-- Leaderboard Screen -->
-        <div id="leaderboard-screen" class="hidden">
-            <h1 class="text-4xl font-bold text-slate-800 mb-4">Leaderboard</h1>
-            <div class="table-container">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-100">
-                        <tr>
-                            <th class="p-3">Rank</th>
-                            <th class="p-3">Name</th>
-                            <th class="p-3">Score</th>
-                            <th class="p-3">Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard-body"></tbody>
-                </table>
-            </div>
-             <button id="back-to-start-btn" class="btn btn-gray mt-6">Back to Start</button>
-        </div>
+        <!-- Screens will be injected here -->
     </div>
+    
+    <!-- Templates for Screens -->
+    <template id="start-screen-template">
+        <h1 class="text-4xl font-bold text-slate-800 mb-4">Game: Guess the Translator</h1>
+        <p class="text-lg text-slate-600 mb-6">Enter your name to start and get on the leaderboard!</p>
+        <input type="text" id="player-name-input" class="w-full p-3 border border-slate-300 rounded-lg text-lg mb-4" placeholder="Enter your full name...">
+        <button id="start-btn" class="btn btn-primary text-xl">Start!</button>
+        <button id="leaderboard-btn" class="btn btn-secondary">View Leaderboard</button>
+    </template>
+
+    <template id="game-screen-template">
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                 <p id="question-counter" class="text-sm font-semibold text-slate-500 text-left"></p>
+                 <p id="score" class="text-xl font-bold text-slate-700 text-left"></p>
+            </div>
+             <p id="timer" class="timer text-xl"></p>
+        </div>
+        <p id="vietnamese-line" class="mb-2"></p>
+        <p id="english-line" class="mb-6"></p>
+        <div id="choices"></div>
+        <div id="feedback-container" class="hidden mt-6">
+            <p id="feedback" class="text-2xl font-bold mb-4"></p>
+            <div id="analysis-box"><p id="analysis-text" class="text-slate-700"></p></div>
+        </div>
+    </template>
+
+    <template id="end-screen-template">
+        <h1 class="text-4xl font-bold text-slate-800 mb-4">Game Over!</h1>
+        <p id="final-score" class="text-2xl text-slate-600 mb-2"></p>
+        <p id="final-time" class="text-2xl text-slate-600 mb-8"></p>
+        <button id="view-leaderboard-end-btn" class="btn btn-secondary">View Leaderboard</button>
+        <button id="restart-btn" class="btn btn-primary text-xl">Play Again</button>
+    </template>
+
+    <template id="leaderboard-screen-template">
+        <h1 class="text-4xl font-bold text-slate-800 mb-4">Leaderboard</h1>
+        <div class="table-container">
+            <table class="w-full text-left">
+                <thead class="bg-slate-100">
+                    <tr>
+                        <th class="p-3">Rank</th>
+                        <th class="p-3">Name</th>
+                        <th class="p-3">Score</th>
+                        <th class="p-3">Time</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+        </div>
+         <button id="back-to-start-btn" class="btn btn-gray mt-6">Back to Start</button>
+    </template>
+    
+    <template id="bonus-popup-template">
+        <div class="bonus-popup">
+            <div class="bonus-popup-content">
+                <h2 id="bonus-title" class="text-3xl font-bold mb-4 text-amber-500">Congratulations!</h2>
+                <p id="bonus-message" class="text-xl mb-6"></p>
+                <button id="close-bonus-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </template>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // --- Firebase Config (DO NOT CHANGE) ---
         const firebaseConfig = {
             apiKey: "AIzaSyAC924_uP9ebAZesCDnpy7xVPX82hIey9I",
             authDomain: "test-c24a8.firebaseapp.com",
@@ -136,7 +166,6 @@
             measurementId: "G-YJ7L8E0C9K"
         };
         
-        // --- Firebase Initialization ---
         let app, auth, db;
         let firebaseInitialized = false;
         try {
@@ -145,7 +174,7 @@
             db = getFirestore(app);
             await signInAnonymously(auth);
             firebaseInitialized = true;
-            console.log("Firebase initialized and user signed in anonymously.");
+            console.log("Firebase initialized.");
         } catch (error) {
             console.error("Firebase initialization error:", error);
         }
@@ -161,32 +190,8 @@
             { vietnamese: "Hết lớp núi này lại tiếp đến lớp núi khác;", english: '"After we climb one mountain, another looms into view:"', translator: "Aileen Palmer", analysis: "Analysis: The verb 'looms into view' is a dynamic and poetic choice that conveys the daunting challenge." },
             { vietnamese: "Thì muôn dặm nước non thu cả vào tầm mắt.", english: '"More than ten thousand li can be surveyed at a glance."', translator: "Aileen Palmer", analysis: "Analysis: The phrase 'surveyed at a glance' powerfully conveys the visual scope and sense of achievement." }
         ];
-
-        const startScreen = document.getElementById('start-screen');
-        const gameScreen = document.getElementById('game-screen');
-        const endScreen = document.getElementById('end-screen');
-        const leaderboardScreen = document.getElementById('leaderboard-screen');
         
-        const startBtn = document.getElementById('start-btn');
-        const restartBtn = document.getElementById('restart-btn');
-        const leaderboardBtn = document.getElementById('leaderboard-btn');
-        const viewLeaderboardEndBtn = document.getElementById('view-leaderboard-end-btn');
-        const backToStartBtn = document.getElementById('back-to-start-btn');
-        
-        const playerNameInput = document.getElementById('player-name-input');
-        const questionCounterEl = document.getElementById('question-counter');
-        const scoreEl = document.getElementById('score');
-        const timerEl = document.getElementById('timer');
-        const vietnameseLineEl = document.getElementById('vietnamese-line');
-        const englishLineEl = document.getElementById('english-line');
-        const choicesEl = document.getElementById('choices');
-        const feedbackContainer = document.getElementById('feedback-container');
-        const feedbackEl = document.getElementById('feedback');
-        const analysisEl = document.getElementById('analysis-text');
-        const finalScoreEl = document.getElementById('final-score');
-        const finalTimeEl = document.getElementById('final-time');
-        const leaderboardBody = document.getElementById('leaderboard-body');
-        
+        const gameContainer = document.getElementById('game-container');
         let currentQuestionIndex = 0;
         let score = 0;
         let shuffledQuestions = [];
@@ -194,37 +199,39 @@
         let startTime;
         let playerName = "";
 
-        // --- Sound Effects Initialization ---
         const correctSynth = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
         const wrongSynth = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 } }).toDestination();
 
-
-        // --- Event Listeners & Initial Setup ---
-        startBtn.addEventListener('click', startGame);
-        restartBtn.addEventListener('click', () => showScreen('start-screen'));
-        leaderboardBtn.addEventListener('click', showLeaderboard);
-        viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
-        backToStartBtn.addEventListener('click', () => showScreen('start-screen'));
-
-        if (!firebaseInitialized) {
-            leaderboardBtn.disabled = true;
-            leaderboardBtn.style.backgroundColor = '#9ca3af'; 
-            leaderboardBtn.title = "Leaderboard is offline";
+        function showScreen(templateId) {
+            const template = document.getElementById(templateId);
+            gameContainer.innerHTML = template.innerHTML;
+            addEventListeners();
         }
 
+        function addEventListeners() {
+            const startBtn = document.getElementById('start-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            const leaderboardBtn = document.getElementById('leaderboard-btn');
+            const viewLeaderboardEndBtn = document.getElementById('view-leaderboard-end-btn');
+            const backToStartBtn = document.getElementById('back-to-start-btn');
 
-        function showScreen(screenId) {
-            [startScreen, gameScreen, endScreen, leaderboardScreen].forEach(screen => {
-                screen.classList.add('hidden');
-            });
-            document.getElementById(screenId).classList.remove('hidden');
+            if (startBtn) startBtn.addEventListener('click', startGame);
+            if (restartBtn) restartBtn.addEventListener('click', () => showScreen('start-screen-template'));
+            if (leaderboardBtn) {
+                leaderboardBtn.addEventListener('click', showLeaderboard);
+                if (!firebaseInitialized) {
+                    leaderboardBtn.disabled = true;
+                    leaderboardBtn.title = "Leaderboard is offline";
+                }
+            }
+            if (viewLeaderboardEndBtn) viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
+            if (backToStartBtn) backToStartBtn.addEventListener('click', () => showScreen('start-screen-template'));
         }
 
         async function startGame() {
-            // Start Tone.js audio context on user interaction
             await Tone.start();
-            console.log('Audio context started');
-
+            
+            const playerNameInput = document.getElementById('player-name-input');
             playerName = playerNameInput.value.trim();
             if (!playerName) {
                 alert("Please enter your name to start!");
@@ -234,7 +241,7 @@
             currentQuestionIndex = 0;
             score = 0;
             shuffledQuestions = questions.sort(() => Math.random() - 0.5);
-            showScreen('game-screen');
+            showScreen('game-screen-template');
             
             startTime = Date.now();
             timerInterval = setInterval(updateTimer, 1000);
@@ -243,12 +250,14 @@
         }
         
         function displayQuestion() {
-            feedbackContainer.classList.add('hidden');
+            const feedbackContainer = document.getElementById('feedback-container');
+            if (feedbackContainer) feedbackContainer.classList.add('hidden');
 
             const question = shuffledQuestions[currentQuestionIndex];
-            vietnameseLineEl.textContent = `Original: ${question.vietnamese}`;
-            englishLineEl.textContent = question.english;
+            document.getElementById('vietnamese-line').textContent = `Original: ${question.vietnamese}`;
+            document.getElementById('english-line').textContent = question.english;
             
+            const choicesEl = document.getElementById('choices');
             choicesEl.innerHTML = '';
             ["Aileen Palmer", "Huỳnh Sanh Thông"].forEach(translator => {
                 const button = document.createElement('button');
@@ -263,6 +272,7 @@
 
         function checkAnswer(chosenTranslator) {
             const correctTranslator = shuffledQuestions[currentQuestionIndex].translator;
+            const feedbackEl = document.getElementById('feedback');
             
             if (chosenTranslator === correctTranslator) {
                 feedbackEl.textContent = "Correct!";
@@ -273,12 +283,15 @@
                 feedbackEl.textContent = `Incorrect! The translator was ${correctTranslator}.`;
                 feedbackEl.className = 'incorrect';
                 wrongSynth.triggerAttackRelease("A2", "8n", Tone.now());
+                if (window.navigator && window.navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
             }
-
-            analysisEl.textContent = shuffledQuestions[currentQuestionIndex].analysis;
-            feedbackContainer.classList.remove('hidden');
             
-            Array.from(choicesEl.children).forEach(button => button.disabled = true);
+            document.getElementById('analysis-text').textContent = shuffledQuestions[currentQuestionIndex].analysis;
+            document.getElementById('feedback-container').classList.remove('hidden');
+            
+            Array.from(document.getElementById('choices').children).forEach(button => button.disabled = true);
             updateScoreboard();
 
             setTimeout(nextQuestion, 3000); 
@@ -297,87 +310,101 @@
             clearInterval(timerInterval);
             const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
 
-            showScreen('end-screen');
-            finalScoreEl.textContent = `Your Score: ${score} / ${shuffledQuestions.length}`;
-            finalTimeEl.textContent = `Time: ${formatTime(elapsedTime)}`;
+            showScreen('end-screen-template');
+            document.getElementById('final-score').textContent = `Your Score: ${score} / ${shuffledQuestions.length}`;
+            document.getElementById('final-time').textContent = `Time: ${formatTime(elapsedTime)}`;
             
             await saveScoreToFirestore(playerName, score, elapsedTime);
+            await determineAndShowBonus(score, elapsedTime);
         }
         
         async function saveScoreToFirestore(name, finalScore, timeInSeconds) {
-            if (!firebaseInitialized) {
-                console.log("Firebase not configured. Score was not saved.");
-                return;
-            }
+            if (!firebaseInitialized) return;
             try {
-                await addDoc(collection(db, scoreCollectionPath), {
-                    name: name,
-                    score: finalScore,
-                    time: timeInSeconds,
-                    timestamp: serverTimestamp()
-                });
-                console.log("Score saved successfully!");
+                await addDoc(collection(db, scoreCollectionPath), { name, score: finalScore, time: timeInSeconds, timestamp: serverTimestamp() });
             } catch (e) {
                 console.error("Error adding document: ", e);
             }
         }
 
+        async function getSortedLeaderboard() {
+            if (!firebaseInitialized) return [];
+            try {
+                const querySnapshot = await getDocs(query(collection(db, scoreCollectionPath)));
+                const scores = [];
+                querySnapshot.forEach((doc) => scores.push(doc.data()));
+                scores.sort((a, b) => b.score - a.score || a.time - b.time);
+                return scores;
+            } catch (e) {
+                console.error("Error getting leaderboard: ", e);
+                return [];
+            }
+        }
+        
+        async function determineAndShowBonus(playerScore, playerTime) {
+            const leaderboard = await getSortedLeaderboard();
+            let playerRank = -1;
+
+            // Find the player's rank
+            const playerIndex = leaderboard.findIndex(entry => entry.name === playerName && entry.score === playerScore && entry.time === playerTime);
+            if (playerIndex !== -1) {
+                playerRank = playerIndex + 1;
+            }
+
+            let bonusMessage = "Thank you for your cooperation, 1 BONUS for you";
+            if (playerRank !== -1 && playerRank <= 3) {
+                bonusMessage = "Thank you for your cooperation, 2 BONUSES for you";
+            }
+            
+            // Show the popup
+            const popupTemplate = document.getElementById('bonus-popup-template');
+            const popupNode = popupTemplate.content.cloneNode(true);
+            popupNode.getElementById('bonus-message').textContent = bonusMessage;
+            document.body.appendChild(popupNode);
+
+            document.getElementById('close-bonus-btn').addEventListener('click', () => {
+                document.querySelector('.bonus-popup').remove();
+            });
+        }
+
         async function showLeaderboard() {
-            showScreen('leaderboard-screen');
+            showScreen('leaderboard-screen-template');
+            const leaderboardBody = document.getElementById('leaderboard-body');
             if (!firebaseInitialized) {
                 leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Leaderboard is unavailable.</td></tr>';
                 return;
             }
             leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
+            
+            const scores = await getSortedLeaderboard();
 
-            try {
-                const querySnapshot = await getDocs(query(collection(db, scoreCollectionPath)));
-                
-                leaderboardBody.innerHTML = '';
-                if (querySnapshot.empty) {
-                     leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">No one has played yet. Be the first!</td></tr>';
-                     return;
-                }
-                
-                const scores = [];
-                querySnapshot.forEach((doc) => {
-                    scores.push(doc.data());
-                });
-
-                scores.sort((a, b) => {
-                    if (b.score !== a.score) {
-                        return b.score - a.score;
-                    }
-                    return a.time - b.time;
-                });
-
-                let rank = 1;
-                scores.forEach((data) => {
-                    const row = `
-                        <tr class="border-b">
-                            <td class="p-3">${rank++}</td>
-                            <td class="p-3 font-semibold">${data.name}</td>
-                            <td class="p-3">${data.score}</td>
-                            <td class="p-3">${formatTime(data.time)}</td>
-                        </tr>
-                    `;
-                    leaderboardBody.innerHTML += row;
-                });
-
-            } catch (e) {
-                console.error("Error getting leaderboard: ", e);
-                leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Could not load the leaderboard.</td></tr>';
+            leaderboardBody.innerHTML = '';
+            if (scores.length === 0) {
+                 leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">No one has played yet. Be the first!</td></tr>';
+                 return;
             }
+
+            scores.forEach((data, index) => {
+                const row = `
+                    <tr class="border-b">
+                        <td class="p-3">${index + 1}</td>
+                        <td class="p-3 font-semibold">${data.name}</td>
+                        <td class="p-3">${data.score}</td>
+                        <td class="p-3">${formatTime(data.time)}</td>
+                    </tr>
+                `;
+                leaderboardBody.innerHTML += row;
+            });
         }
 
         function updateScoreboard() {
-            scoreEl.textContent = `Score: ${score}`;
-            questionCounterEl.textContent = `Question ${currentQuestionIndex + 1} / ${shuffledQuestions.length}`;
+            document.getElementById('score').textContent = `Score: ${score}`;
+            document.getElementById('question-counter').textContent = `Question ${currentQuestionIndex + 1} / ${shuffledQuestions.length}`;
         }
         
         function updateTimer() {
             const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-            timerEl.textContent = formatTime(elapsedTime);
+            document.getElementById('timer').textContent = formatTime(elapsedTime);
         }
 
         function formatTime(totalSeconds) {
@@ -385,6 +412,9 @@
             const seconds = (totalSeconds % 60).toString().padStart(2, '0');
             return `${minutes}:${seconds}`;
         }
+        
+        // Initial load
+        showScreen('start-screen-template');
 
     </script>
 </body>
