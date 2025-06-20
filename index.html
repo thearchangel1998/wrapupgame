@@ -58,6 +58,11 @@
             margin-bottom: 1rem;
         }
         .table-container { max-height: 400px; overflow-y: auto; }
+        .offline-notice {
+            font-size: 0.8rem;
+            color: #ef4444;
+            margin-top: 1rem;
+        }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen">
@@ -70,6 +75,7 @@
             <input type="text" id="player-name-input" placeholder="Enter your full name...">
             <button id="start-btn" class="btn btn-primary text-xl">Start!</button>
             <button id="leaderboard-btn" class="btn btn-secondary">View Leaderboard</button>
+            <p id="offline-notice-start" class="offline-notice hidden">Leaderboard is offline.</p>
         </div>
 
         <!-- Game Screen -->
@@ -182,6 +188,7 @@
         const finalScoreEl = document.getElementById('final-score');
         const finalTimeEl = document.getElementById('final-time');
         const leaderboardBody = document.getElementById('leaderboard-body');
+        const offlineNoticeStart = document.getElementById('offline-notice-start');
         
         let currentQuestionIndex = 0;
         let score = 0;
@@ -190,12 +197,20 @@
         let startTime;
         let playerName = "";
 
-        // --- Event Listeners ---
+        // --- Event Listeners & Initial Setup ---
         startBtn.addEventListener('click', startGame);
         restartBtn.addEventListener('click', () => showScreen('start-screen'));
         leaderboardBtn.addEventListener('click', showLeaderboard);
         viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
         backToStartBtn.addEventListener('click', () => showScreen('start-screen'));
+
+        // Handle offline state for leaderboard
+        if (!firebaseInitialized) {
+            leaderboardBtn.classList.add('hidden');
+            viewLeaderboardEndBtn.classList.add('hidden');
+            offlineNoticeStart.classList.remove('hidden');
+        }
+
 
         function showScreen(screenId) {
             [startScreen, gameScreen, endScreen, leaderboardScreen].forEach(screen => {
@@ -259,7 +274,7 @@
             Array.from(choicesEl.children).forEach(button => button.disabled = true);
             updateScoreboard();
 
-            setTimeout(nextQuestion, 1000); // Automatically move to the next question after 1 second
+            setTimeout(nextQuestion, 3000); // Automatically move to the next question after 3 seconds
         }
 
         function nextQuestion() {
