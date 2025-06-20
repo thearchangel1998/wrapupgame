@@ -34,7 +34,7 @@
             width: 100%;
             margin-top: 1rem;
         }
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
@@ -58,14 +58,9 @@
             margin-bottom: 1rem;
         }
         .table-container { max-height: 400px; overflow-y: auto; }
-        .offline-notice {
-            font-size: 0.8rem;
-            color: #ef4444;
-            margin-top: 1rem;
-        }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body class="flex items-center justify-center min-h-screen p-4">
 
     <div id="game-container" class="game-container">
         <!-- Start Screen -->
@@ -75,7 +70,6 @@
             <input type="text" id="player-name-input" placeholder="Enter your full name...">
             <button id="start-btn" class="btn btn-primary text-xl">Start!</button>
             <button id="leaderboard-btn" class="btn btn-secondary">View Leaderboard</button>
-            <p id="offline-notice-start" class="offline-notice hidden">Leaderboard is offline.</p>
         </div>
 
         <!-- Game Screen -->
@@ -126,33 +120,36 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // --- Firebase Config (DO NOT CHANGE) ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'translator-game';
+        // --- User's Firebase Config ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAC924_uP9ebAZesCDnpy7xVPX82hIey9I",
+            authDomain: "test-c24a8.firebaseapp.com",
+            projectId: "test-c24a8",
+            storageBucket: "test-c24a8.firebasestorage.app",
+            messagingSenderId: "87653315057",
+            appId: "1:87653315057:web:f86c6bcf9275f500c89450",
+            measurementId: "G-YJ7L8E0C9K"
+        };
 
         // --- Firebase Initialization ---
         let app, auth, db;
         let firebaseInitialized = false;
         try {
-            if (Object.keys(firebaseConfig).length > 0) {
-                app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                await signInAnonymously(auth);
-                firebaseInitialized = true;
-                console.log("Firebase initialized and user signed in anonymously.");
-            } else {
-                console.error("Firebase config is missing or empty. Leaderboard will be disabled.");
-            }
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            await signInAnonymously(auth);
+            firebaseInitialized = true;
+            console.log("Firebase initialized and user signed in anonymously.");
         } catch (error) {
             console.error("Firebase initialization error:", error);
         }
         
-        const scoreCollectionPath = `artifacts/${appId}/public/data/scores`;
+        const scoreCollectionPath = `scores`;
 
         const questions = [
             { vietnamese: "Trong tù không rượu cũng không hoa,", english: '"For prisoners, there is no alcohol nor flowers,"', translator: "Aileen Palmer", analysis: "Analysis: The more generalized opening ('alcohol') and natural phrasing show a focus on creating empathy and being easily understood by English readers." },
@@ -188,7 +185,6 @@
         const finalScoreEl = document.getElementById('final-score');
         const finalTimeEl = document.getElementById('final-time');
         const leaderboardBody = document.getElementById('leaderboard-body');
-        const offlineNoticeStart = document.getElementById('offline-notice-start');
         
         let currentQuestionIndex = 0;
         let score = 0;
@@ -204,11 +200,10 @@
         viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
         backToStartBtn.addEventListener('click', () => showScreen('start-screen'));
 
-        // Handle offline state for leaderboard
         if (!firebaseInitialized) {
-            leaderboardBtn.classList.add('hidden');
-            viewLeaderboardEndBtn.classList.add('hidden');
-            offlineNoticeStart.classList.remove('hidden');
+            leaderboardBtn.disabled = true;
+            leaderboardBtn.style.backgroundColor = '#9ca3af'; // gray-400
+            leaderboardBtn.title = "Leaderboard is offline";
         }
 
 
@@ -318,7 +313,7 @@
         async function showLeaderboard() {
             showScreen('leaderboard-screen');
             if (!firebaseInitialized) {
-                leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Leaderboard is unavailable. Firebase not configured.</td></tr>';
+                leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Leaderboard is unavailable.</td></tr>';
                 return;
             }
             leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
