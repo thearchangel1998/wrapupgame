@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game: Guess the Translator (Online)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff; /* sky-50 */
+        }
+        .game-container {
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            padding: 2rem;
+            text-align: center;
+            max-width: 600px;
+            width: 95%;
+            transition: all 0.3s ease-in-out;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: none;
+            display: block;
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-primary { background-color: #0ea5e9; color: white; }
+        .btn-secondary { background-color: #0d9488; color: white; }
+        .btn-accent { background-color: #fb923c; color: white; }
+        .btn-gray { background-color: #64748b; color: white;}
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        #feedback.correct { color: #16a34a; }
+        #feedback.incorrect { color: #dc2626; }
+        #english-line { font-size: 1.5rem; font-style: italic; color: #1e293b; padding: 1.5rem; background-color: #f8fafc; border-radius: 1rem; border: 1px solid #e2e8f0; }
+        #vietnamese-line { font-size: 1rem; color: #64748b; margin-bottom: 1rem; }
+        #analysis-box { background-color: #f1f5f9; border-radius: 0.75rem; padding: 1rem; margin-top: 1.5rem; text-align: left; border-left: 4px solid #fb923c; font-style: italic; }
+        .timer { font-weight: 600; color: #475569; }
+        #player-name-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        .table-container { max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+    <div id="game-container" class="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen">
+            <h1 class="text-4xl font-bold text-slate-800 mb-4">Game: Guess the Translator</h1>
+            <p class="text-lg text-slate-600 mb-6">Enter your name to start and get on the leaderboard!</p>
+            <input type="text" id="player-name-input" placeholder="Enter your full name...">
+            <button id="start-btn" class="btn btn-primary text-xl">Start!</button>
+            <button id="leaderboard-btn" class="btn btn-secondary">View Leaderboard</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden">
+            <div class="mb-6 flex justify-between items-center">
+                <div>
+                     <p id="question-counter" class="text-sm font-semibold text-slate-500 text-left"></p>
+                     <p id="score" class="text-xl font-bold text-slate-700 text-left"></p>
+                </div>
+                 <p id="timer" class="timer text-xl"></p>
+            </div>
+            <p id="vietnamese-line" class="mb-2"></p>
+            <p id="english-line" class="mb-6"></p>
+            <div id="choices"></div>
+            <div id="feedback-container" class="hidden mt-6">
+                <p id="feedback" class="text-2xl font-bold mb-4"></p>
+                <div id="analysis-box"><p id="analysis-text" class="text-slate-700"></p></div>
+            </div>
+             <button id="next-btn" class="btn btn-accent mt-6 hidden">Next Question</button>
+        </div>
+        
+        <!-- End Screen -->
+        <div id="end-screen" class="hidden">
+            <h1 class="text-4xl font-bold text-slate-800 mb-4">Game Over!</h1>
+            <p id="final-score" class="text-2xl text-slate-600 mb-2"></p>
+            <p id="final-time" class="text-2xl text-slate-600 mb-8"></p>
+            <button id="view-leaderboard-end-btn" class="btn btn-secondary">View Leaderboard</button>
+            <button id="restart-btn" class="btn btn-primary text-xl">Play Again</button>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="hidden">
+            <h1 class="text-4xl font-bold text-slate-800 mb-4">Leaderboard</h1>
+            <div class="table-container">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-100">
+                        <tr>
+                            <th class="p-3">Rank</th>
+                            <th class="p-3">Name</th>
+                            <th class="p-3">Score</th>
+                            <th class="p-3">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body"></tbody>
+                </table>
+            </div>
+             <button id="back-to-start-btn" class="btn btn-gray mt-6">Back to Start</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Config (DO NOT CHANGE) ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'translator-game';
+
+        // --- Firebase Initialization ---
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            await signInAnonymously(auth);
+            console.log("Firebase initialized and user signed in anonymously.");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+            // Hiển thị lỗi cho người dùng nếu cần
+        }
+        
+        const scoreCollectionPath = `artifacts/${appId}/public/data/scores`;
+
+        const questions = [
+            { vietnamese: "Trong tù không rượu cũng không hoa,", english: '"For prisoners, there is no alcohol nor flowers,"', translator: "Aileen Palmer", analysis: "Analysis: The more generalized opening ('alcohol') and natural phrasing show a focus on creating empathy and being easily understood by English readers." },
+            { vietnamese: "Trong tù không rượu cũng không hoa,", english: '"In prison there\'s no alcohol nor flower,"', translator: "Huỳnh Sanh Thông", analysis: "Analysis: This translation is very close to the literal meaning, reflecting a commitment to lexical fidelity and directness." },
+            { vietnamese: "Trước cảnh đẹp đêm nay biết làm thế nào?", english: '"But the night is so lovely, how can we celebrate it?"', translator: "Aileen Palmer", analysis: "Analysis: She dramatically rephrases the line into a more poetic, emotionally charged question to inject a sense of longing." },
+            { vietnamese: "Từ ngoài khe cửa, trăng ngắm nhà thơ.", english: '"The moon peers through the window at the poet."', translator: "Huỳnh Sanh Thông", analysis: "Analysis: The verb 'peers' is observational, precise, and less anthropomorphic, retaining the original's tone." },
+            { vietnamese: "Có đi đường mới biết đường đi khó,", english: '"He knows the road is rough who walks the road."', translator: "Huỳnh Sanh Thông", analysis: "Analysis: He maintains a close syntactic and semantic structure to the original with formal English phrasing, demonstrating formal equivalence." },
+            { vietnamese: "Hết lớp núi này lại tiếp đến lớp núi khác;", english: '"After we climb one mountain, another looms into view:"', translator: "Aileen Palmer", analysis: "Analysis: The verb 'looms into view' is a dynamic and poetic choice that conveys the daunting challenge." },
+            { vietnamese: "Thì muôn dặm nước non thu cả vào tầm mắt.", english: '"More than ten thousand li can be surveyed at a glance."', translator: "Aileen Palmer", analysis: "Analysis: The phrase 'surveyed at a glance' powerfully conveys the visual scope and sense of achievement." }
+        ];
+
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const leaderboardScreen = document.getElementById('leaderboard-screen');
+        
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const viewLeaderboardEndBtn = document.getElementById('view-leaderboard-end-btn');
+        const backToStartBtn = document.getElementById('back-to-start-btn');
+        
+        const playerNameInput = document.getElementById('player-name-input');
+        const questionCounterEl = document.getElementById('question-counter');
+        const scoreEl = document.getElementById('score');
+        const timerEl = document.getElementById('timer');
+        const vietnameseLineEl = document.getElementById('vietnamese-line');
+        const englishLineEl = document.getElementById('english-line');
+        const choicesEl = document.getElementById('choices');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const feedbackEl = document.getElementById('feedback');
+        const analysisEl = document.getElementById('analysis-text');
+        const finalScoreEl = document.getElementById('final-score');
+        const finalTimeEl = document.getElementById('final-time');
+        const leaderboardBody = document.getElementById('leaderboard-body');
+        
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let shuffledQuestions = [];
+        let timerInterval;
+        let startTime;
+        let playerName = "";
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        nextBtn.addEventListener('click', nextQuestion);
+        restartBtn.addEventListener('click', () => showScreen('start-screen'));
+        leaderboardBtn.addEventListener('click', showLeaderboard);
+        viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
+        backToStartBtn.addEventListener('click', () => showScreen('start-screen'));
+
+        function showScreen(screenId) {
+            [startScreen, gameScreen, endScreen, leaderboardScreen].forEach(screen => {
+                screen.classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function startGame() {
+            playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert("Please enter your name to start!");
+                return;
+            }
+
+            currentQuestionIndex = 0;
+            score = 0;
+            shuffledQuestions = questions.sort(() => Math.random() - 0.5);
+            showScreen('game-screen');
+            
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            displayQuestion();
+        }
+        
+        function displayQuestion() {
+            feedbackContainer.classList.add('hidden');
+            nextBtn.classList.add('hidden');
+
+            const question = shuffledQuestions[currentQuestionIndex];
+            vietnameseLineEl.textContent = `Original: ${question.vietnamese}`;
+            englishLineEl.textContent = question.english;
+            
+            choicesEl.innerHTML = '';
+            ["Aileen Palmer", "Huỳnh Sanh Thông"].forEach(translator => {
+                const button = document.createElement('button');
+                button.textContent = translator;
+                button.classList.add('btn', translator === "Aileen Palmer" ? 'btn-primary' : 'btn-secondary');
+                button.addEventListener('click', () => checkAnswer(translator));
+                choicesEl.appendChild(button);
+            });
+            
+            updateScoreboard();
+        }
+
+        function checkAnswer(chosenTranslator) {
+            const correctTranslator = shuffledQuestions[currentQuestionIndex].translator;
+            
+            if (chosenTranslator === correctTranslator) {
+                feedbackEl.textContent = "Correct!";
+                feedbackEl.className = 'correct';
+                score++;
+            } else {
+                feedbackEl.textContent = `Incorrect! The translator was ${correctTranslator}.`;
+                feedbackEl.className = 'incorrect';
+            }
+
+            analysisEl.textContent = shuffledQuestions[currentQuestionIndex].analysis;
+            feedbackContainer.classList.remove('hidden');
+            
+            Array.from(choicesEl.children).forEach(button => button.disabled = true);
+            nextBtn.classList.remove('hidden');
+            updateScoreboard();
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < shuffledQuestions.length) {
+                displayQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        async function endGame() {
+            clearInterval(timerInterval);
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+
+            showScreen('end-screen');
+            finalScoreEl.textContent = `Your Score: ${score} / ${shuffledQuestions.length}`;
+            finalTimeEl.textContent = `Time: ${formatTime(elapsedTime)}`;
+            
+            await saveScoreToFirestore(playerName, score, elapsedTime);
+        }
+        
+        async function saveScoreToFirestore(name, finalScore, timeInSeconds) {
+            try {
+                await addDoc(collection(db, scoreCollectionPath), {
+                    name: name,
+                    score: finalScore,
+                    time: timeInSeconds,
+                    timestamp: serverTimestamp()
+                });
+                console.log("Score saved successfully!");
+            } catch (e) {
+                console.error("Error adding document: ", e);
+            }
+        }
+
+        async function showLeaderboard() {
+            showScreen('leaderboard-screen');
+            leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
+
+            try {
+                const querySnapshot = await getDocs(query(collection(db, scoreCollectionPath)));
+                
+                leaderboardBody.innerHTML = '';
+                if (querySnapshot.empty) {
+                     leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">No one has played yet. Be the first!</td></tr>';
+                     return;
+                }
+                
+                const scores = [];
+                querySnapshot.forEach((doc) => {
+                    scores.push(doc.data());
+                });
+
+                scores.sort((a, b) => {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return a.time - b.time;
+                });
+
+                let rank = 1;
+                scores.forEach((data) => {
+                    const row = `
+                        <tr class="border-b">
+                            <td class="p-3">${rank++}</td>
+                            <td class="p-3 font-semibold">${data.name}</td>
+                            <td class="p-3">${data.score}</td>
+                            <td class="p-3">${formatTime(data.time)}</td>
+                        </tr>
+                    `;
+                    leaderboardBody.innerHTML += row;
+                });
+
+            } catch (e) {
+                console.error("Error getting leaderboard: ", e);
+                leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-red-500">Could not load the leaderboard.</td></tr>';
+            }
+        }
+
+        function updateScoreboard() {
+            scoreEl.textContent = `Score: ${score}`;
+            questionCounterEl.textContent = `Question ${currentQuestionIndex + 1} / ${shuffledQuestions.length}`;
+        }
+        
+        function updateTimer() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            timerEl.textContent = formatTime(elapsedTime);
+        }
+
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+    </script>
+</body>
+</html>
