@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game: Guess the Translator (Online)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -124,7 +125,7 @@
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
 
-        // --- User's Firebase Config ---
+        // --- Firebase Config (DO NOT CHANGE) ---
         const firebaseConfig = {
             apiKey: "AIzaSyAC924_uP9ebAZesCDnpy7xVPX82hIey9I",
             authDomain: "test-c24a8.firebaseapp.com",
@@ -134,7 +135,7 @@
             appId: "1:87653315057:web:f86c6bcf9275f500c89450",
             measurementId: "G-YJ7L8E0C9K"
         };
-
+        
         // --- Firebase Initialization ---
         let app, auth, db;
         let firebaseInitialized = false;
@@ -193,6 +194,11 @@
         let startTime;
         let playerName = "";
 
+        // --- Sound Effects Initialization ---
+        const correctSynth = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
+        const wrongSynth = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 } }).toDestination();
+
+
         // --- Event Listeners & Initial Setup ---
         startBtn.addEventListener('click', startGame);
         restartBtn.addEventListener('click', () => showScreen('start-screen'));
@@ -202,7 +208,7 @@
 
         if (!firebaseInitialized) {
             leaderboardBtn.disabled = true;
-            leaderboardBtn.style.backgroundColor = '#9ca3af'; // gray-400
+            leaderboardBtn.style.backgroundColor = '#9ca3af'; 
             leaderboardBtn.title = "Leaderboard is offline";
         }
 
@@ -214,7 +220,11 @@
             document.getElementById(screenId).classList.remove('hidden');
         }
 
-        function startGame() {
+        async function startGame() {
+            // Start Tone.js audio context on user interaction
+            await Tone.start();
+            console.log('Audio context started');
+
             playerName = playerNameInput.value.trim();
             if (!playerName) {
                 alert("Please enter your name to start!");
@@ -258,9 +268,11 @@
                 feedbackEl.textContent = "Correct!";
                 feedbackEl.className = 'correct';
                 score++;
+                correctSynth.triggerAttackRelease("C5", "8n", Tone.now());
             } else {
                 feedbackEl.textContent = `Incorrect! The translator was ${correctTranslator}.`;
                 feedbackEl.className = 'incorrect';
+                wrongSynth.triggerAttackRelease("A2", "8n", Tone.now());
             }
 
             analysisEl.textContent = shuffledQuestions[currentQuestionIndex].analysis;
@@ -269,7 +281,7 @@
             Array.from(choicesEl.children).forEach(button => button.disabled = true);
             updateScoreboard();
 
-            setTimeout(nextQuestion, 3000); // Automatically move to the next question after 3 seconds
+            setTimeout(nextQuestion, 3000); 
         }
 
         function nextQuestion() {
