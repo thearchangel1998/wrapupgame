@@ -49,6 +49,7 @@
         #feedback.incorrect { color: #dc2626; }
         #english-line { font-size: 1.5rem; font-style: italic; color: #1e293b; padding: 1.5rem; background-color: #fefce8; border-radius: 1rem; border: 1px solid #fde047; } /* Yellow theme */
         #vietnamese-line { font-size: 1rem; color: #64748b; margin-bottom: 1rem; }
+        #analysis-box { background-color: #f1f5f9; border-radius: 0.75rem; padding: 1rem; margin-top: 1.5rem; text-align: left; border-left: 4px solid #1e3a8a; font-style: italic; } /* Dark Blue */
         .timer { font-weight: 600; color: #475569; }
         #player-name-input {
             width: 100%;
@@ -201,7 +202,7 @@
             {
                 vietnamese: "Từ ngoài khe cửa, trăng ngắm nhà thơ.",
                 palmer: { translation: '"And through the air-hole the moon smiles at the poet."', analysis: "Analysis: 'The moon smiles' is a highly emotional, anthropomorphic interpretation that creates a vivid and warm connection." },
-                thong: { translation: '"The moon peers through the window at the poet."', analysis: "Analysis: 'The moon peers' is a precise and less anthropomorphic verb, maintaining a more observational tone." }
+                thong: { translation: '"The moon peers through the window at the poet."', analysis: "Analysis: 'The moon peers' is a precise and less anthropomorphic verb, retaining a more observational tone." }
             },
             {
                 vietnamese: "Có đi đường mới biết đường đi khó,",
@@ -338,7 +339,7 @@
                 feedbackEl.className = 'incorrect';
                 wrongSynth.triggerAttackRelease("A2", "8n", Tone.now());
                 if (window.navigator && window.navigator.vibrate) {
-                    navigator.vibrate(200);
+                    navigator.vibrate([200, 100, 200]); // Stronger vibration pattern
                 }
             }
             
@@ -423,7 +424,7 @@
         function showExplanation() {
             showScreen('explanation-screen-template');
             const contentEl = document.getElementById('explanation-content');
-            contentEl.innerHTML = ''; // Clear previous content
+            contentEl.innerHTML = ''; 
 
             const poems = {
                 "Ngắm Trăng (Moonlight)": questionPool.slice(0, 4),
