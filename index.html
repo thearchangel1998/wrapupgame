@@ -41,14 +41,14 @@
         }
         .btn-primary { background-color: #1e3a8a; color: white; } /* Dark Blue */
         .btn-secondary { background-color: #dc2626; color: white; } /* Red */
+        .btn-accent { background-color: #facc15; color: #422006;} /* Yellow */
         .btn-gray { background-color: #64748b; color: white;}
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         #feedback.correct { color: #16a34a; }
         #feedback.incorrect { color: #dc2626; }
-        #english-line { font-size: 1.5rem; font-style: italic; color: #1e293b; padding: 1.5rem; background-color: #f8fafc; border-radius: 1rem; border: 1px solid #e2e8f0; }
+        #english-line { font-size: 1.5rem; font-style: italic; color: #1e293b; padding: 1.5rem; background-color: #fefce8; border-radius: 1rem; border: 1px solid #fde047; } /* Yellow theme */
         #vietnamese-line { font-size: 1rem; color: #64748b; margin-bottom: 1rem; }
-        #analysis-box { background-color: #fefce8; border-radius: 0.75rem; padding: 1rem; margin-top: 1.5rem; text-align: left; border-left: 4px solid #facc15; font-style: italic; } /* Yellow */
         .timer { font-weight: 600; color: #475569; }
         #player-name-input {
             width: 100%;
@@ -58,29 +58,21 @@
             font-size: 1rem;
             margin-bottom: 1rem;
         }
-        .table-container { max-height: 400px; overflow-y: auto; }
+        .table-container, .explanation-container { max-height: 400px; overflow-y: auto; text-align: left; }
+        .explanation-card { border: 1px solid #e2e8f0; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem; }
+        .explanation-analysis { font-style: italic; color: #64748b; font-size: 0.9em; margin-top: 0.25rem; border-left: 2px solid #facc15; padding-left: 0.5rem; }
+
         .bonus-popup {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0,0,0,0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
+            position: fixed; inset: 0; background-color: rgba(0,0,0,0.6);
+            display: flex; align-items: center; justify-content: center; z-index: 50;
             animation: fadeIn 0.3s ease;
         }
         .bonus-popup-content {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 1rem;
-            text-align: center;
+            background-color: white; padding: 2rem; border-radius: 1rem; text-align: center;
             box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-            transform: scale(0.95);
-            animation: scaleIn 0.3s ease forwards;
+            transform: scale(0.95); animation: scaleIn 0.3s ease forwards;
         }
-        #bonus-title {
-            color: #1e3a8a; /* Dark Blue */
-        }
+        #bonus-title { color: #1e3a8a; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
@@ -111,9 +103,8 @@
         <p id="vietnamese-line" class="mb-2"></p>
         <p id="english-line" class="mb-6"></p>
         <div id="choices"></div>
-        <div id="feedback-container" class="hidden mt-6">
-            <p id="feedback" class="text-2xl font-bold mb-4"></p>
-            <div id="analysis-box"><p id="analysis-text" class="text-slate-700"></p></div>
+        <div id="feedback-container" class="hidden mt-4">
+            <p id="feedback" class="text-2xl font-bold"></p>
         </div>
     </template>
 
@@ -121,6 +112,7 @@
         <h1 class="text-4xl font-bold text-slate-800 mb-4">Game Over!</h1>
         <p id="final-score" class="text-2xl text-slate-600 mb-2"></p>
         <p id="final-time" class="text-2xl text-slate-600 mb-8"></p>
+        <button id="explanation-btn" class="btn btn-accent">View Explanations</button>
         <button id="view-leaderboard-end-btn" class="btn btn-secondary">View Leaderboard</button>
         <button id="restart-btn" class="btn btn-primary text-xl">Play Again</button>
     </template>
@@ -141,6 +133,12 @@
             </table>
         </div>
          <button id="back-to-start-btn" class="btn btn-gray mt-6">Back to Start</button>
+    </template>
+    
+    <template id="explanation-screen-template">
+         <h1 class="text-4xl font-bold text-slate-800 mb-4">Translation Analysis</h1>
+         <div id="explanation-content" class="explanation-container"></div>
+         <button id="back-to-end-btn" class="btn btn-gray mt-6">Back</button>
     </template>
     
     <template id="bonus-popup-template">
@@ -184,30 +182,73 @@
         
         const scoreCollectionPath = `scores`;
 
-        const questions = [
-            { vietnamese: "Trong tù không rượu cũng không hoa,", english: '"For prisoners, there is no alcohol nor flowers,"', translator: "Aileen Palmer", analysis: "Analysis: The more generalized opening ('alcohol') and natural phrasing show a focus on creating empathy and being easily understood by English readers." },
-            { vietnamese: "Trong tù không rượu cũng không hoa,", english: '"In prison there\'s no alcohol nor flower,"', translator: "Huỳnh Sanh Thông", analysis: "Analysis: This translation is very close to the literal meaning, reflecting a commitment to lexical fidelity and directness." },
-            { vietnamese: "Trước cảnh đẹp đêm nay biết làm thế nào?", english: '"But the night is so lovely, how can we celebrate it?"', translator: "Aileen Palmer", analysis: "Analysis: She dramatically rephrases the line into a more poetic, emotionally charged question to inject a sense of longing." },
-            { vietnamese: "Từ ngoài khe cửa, trăng ngắm nhà thơ.", english: '"The moon peers through the window at the poet."', translator: "Huỳnh Sanh Thông", analysis: "Analysis: The verb 'peers' is observational, precise, and less anthropomorphic, retaining the original's tone." },
-            { vietnamese: "Có đi đường mới biết đường đi khó,", english: '"He knows the road is rough who walks the road."', translator: "Huỳnh Sanh Thông", analysis: "Analysis: He maintains a close syntactic and semantic structure to the original with formal English phrasing, demonstrating formal equivalence." },
-            { vietnamese: "Hết lớp núi này lại tiếp đến lớp núi khác;", english: '"After we climb one mountain, another looms into view:"', translator: "Aileen Palmer", analysis: "Analysis: The verb 'looms into view' is a dynamic and poetic choice that conveys the daunting challenge." },
-            { vietnamese: "Thì muôn dặm nước non thu cả vào tầm mắt.", english: '"More than ten thousand li can be surveyed at a glance."', translator: "Aileen Palmer", analysis: "Analysis: The phrase 'surveyed at a glance' powerfully conveys the visual scope and sense of achievement." }
+        const questionPool = [
+            {
+                vietnamese: "Trong tù không rượu cũng không hoa,",
+                palmer: { translation: '"For prisoners, there is no alcohol nor flowers,"', analysis: "Analysis: The more generalized opening ('alcohol') and natural phrasing show a focus on creating empathy and being easily understood by English readers." },
+                thong: { translation: '"In prison there\'s no alcohol nor flower,"', analysis: "Analysis: This translation is very close to the literal meaning, reflecting a commitment to lexical fidelity and directness." }
+            },
+            {
+                vietnamese: "Trước cảnh đẹp đêm nay biết làm thế nào?",
+                palmer: { translation: '"But the night is so lovely, how can we celebrate it?"', analysis: "Analysis: She dramatically rephrases the line into a more poetic, emotionally charged question to inject a sense of longing." },
+                thong: { translation: '"With what to celebrate this lovely night?"', analysis: "Analysis: This is a direct and accurate translation, maintaining the original's nuance with slightly more formal phrasing." }
+            },
+            {
+                vietnamese: "Người hướng ra trước song ngắm trăng sáng,",
+                palmer: { translation: '"I go to the air-hole and stare up at the moon,"', analysis: "Analysis: Specifying 'I' and using the evocative 'air-hole' prioritizes personal image and emotional impact." },
+                thong: { translation: '"I go to the window and watch the moon,"', analysis: "Analysis: Using 'window' and 'watch' is a straightforward, literal choice, preferring simplicity over interpretive imagery." }
+            },
+            {
+                vietnamese: "Từ ngoài khe cửa, trăng ngắm nhà thơ.",
+                palmer: { translation: '"And through the air-hole the moon smiles at the poet."', analysis: "Analysis: 'The moon smiles' is a highly emotional, anthropomorphic interpretation that creates a vivid and warm connection." },
+                thong: { translation: '"The moon peers through the window at the poet."', analysis: "Analysis: 'The moon peers' is a precise and less anthropomorphic verb, maintaining a more observational tone." }
+            },
+            {
+                vietnamese: "Có đi đường mới biết đường đi khó,",
+                palmer: { translation: '"Only when out on the road can we take stock of our dangers,"', analysis: "Analysis: She expands the meaning to 'take stock of our dangers' for a more impactful and relatable message." },
+                thong: { translation: '"He knows the road is rough who walks the road."', analysis: "Analysis: He maintains a close syntactic and semantic structure to the original with formal English phrasing, demonstrating formal equivalence." }
+            },
+            {
+                vietnamese: "Hết lớp núi này lại tiếp đến lớp núi khác;",
+                palmer: { translation: '"After we climb one mountain, another looms into view:"', analysis: "Analysis: 'Looms into view' is a dynamic and poetic verb choice that conveys the daunting challenge." },
+                thong: { translation: '"One mountain range, another mountain range . . ."', analysis: "Analysis: The repetition and ellipsis maintain the cumulative feel of the original, mirroring its structure." }
+            },
+            {
+                vietnamese: "Khi đã vượt các lớp núi lên đến đỉnh cao chót,",
+                palmer: { translation: '"But, once we have struggled up to the top of the mountain range,"', analysis: "Analysis: The use of 'But' and 'struggled up' emphasizes effort and enhances the emotional connection." },
+                thong: { translation: '"Keep struggling up and reach the highest peak:"', analysis: "Analysis: 'Keep struggling up' is a strong, accurate translation that maintains the sense of ongoing effort." }
+            },
+            {
+                vietnamese: "Thì muôn dặm nước non thu cả vào tầm mắt.",
+                palmer: { translation: '"More than ten thousand li can be surveyed at a glance."', analysis: "Analysis: 'Surveyed at a glance' powerfully conveys the visual scope and sense of achievement with natural English." },
+                thong: { translation: '"ten thousand miles will come within your ken."', analysis: "Analysis: The use of the formal idiom 'within your ken' highlights scholarly precision and lexical fidelity." }
+            }
         ];
         
         const gameContainer = document.getElementById('game-container');
         let currentQuestionIndex = 0;
         let score = 0;
-        let shuffledQuestions = [];
+        let shuffledQuestionPool = [];
+        let currentDisplayedQuestion = {};
         let timerInterval;
         let startTime;
         let playerName = "";
+        let finalPlayerState = {};
 
         const correctSynth = new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0.3, release: 1 } }).toDestination();
         const wrongSynth = new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.2, sustain: 0, release: 0.2 } }).toDestination();
 
-        function showScreen(templateId) {
+        function showScreen(templateId, state = {}) {
             const template = document.getElementById(templateId);
             gameContainer.innerHTML = template.innerHTML;
+            
+            if (state.score !== undefined) {
+                 document.getElementById('final-score').textContent = `Your Score: ${state.score} / ${shuffledQuestionPool.length}`;
+            }
+            if (state.time !== undefined) {
+                 document.getElementById('final-time').textContent = `Time: ${formatTime(state.time)}`;
+            }
+
             addEventListeners();
         }
 
@@ -217,6 +258,8 @@
             const leaderboardBtn = document.getElementById('leaderboard-btn');
             const viewLeaderboardEndBtn = document.getElementById('view-leaderboard-end-btn');
             const backToStartBtn = document.getElementById('back-to-start-btn');
+            const explanationBtn = document.getElementById('explanation-btn');
+            const backToEndBtn = document.getElementById('back-to-end-btn');
 
             if (startBtn) startBtn.addEventListener('click', startGame);
             if (restartBtn) restartBtn.addEventListener('click', () => showScreen('start-screen-template'));
@@ -229,6 +272,8 @@
             }
             if (viewLeaderboardEndBtn) viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
             if (backToStartBtn) backToStartBtn.addEventListener('click', () => showScreen('start-screen-template'));
+            if(explanationBtn) explanationBtn.addEventListener('click', showExplanation);
+            if(backToEndBtn) backToEndBtn.addEventListener('click', () => showScreen('end-screen-template', finalPlayerState));
         }
 
         async function startGame() {
@@ -243,7 +288,7 @@
 
             currentQuestionIndex = 0;
             score = 0;
-            shuffledQuestions = questions.sort(() => Math.random() - 0.5);
+            shuffledQuestionPool = [...questionPool].sort(() => Math.random() - 0.5);
             showScreen('game-screen-template');
             
             startTime = Date.now();
@@ -256,9 +301,15 @@
             const feedbackContainer = document.getElementById('feedback-container');
             if (feedbackContainer) feedbackContainer.classList.add('hidden');
 
-            const question = shuffledQuestions[currentQuestionIndex];
-            document.getElementById('vietnamese-line').textContent = `Original: ${question.vietnamese}`;
-            document.getElementById('english-line').textContent = question.english;
+            const questionData = shuffledQuestionPool[currentQuestionIndex];
+            
+            const showPalmer = Math.random() < 0.5;
+            currentDisplayedQuestion = showPalmer 
+                ? { ...questionData.palmer, translator: "Aileen Palmer" }
+                : { ...questionData.thong, translator: "Huỳnh Sanh Thông" };
+            
+            document.getElementById('vietnamese-line').textContent = `Original: ${questionData.vietnamese}`;
+            document.getElementById('english-line').textContent = currentDisplayedQuestion.translation;
             
             const choicesEl = document.getElementById('choices');
             choicesEl.innerHTML = '';
@@ -274,7 +325,7 @@
         }
 
         function checkAnswer(chosenTranslator) {
-            const correctTranslator = shuffledQuestions[currentQuestionIndex].translator;
+            const correctTranslator = currentDisplayedQuestion.translator;
             const feedbackEl = document.getElementById('feedback');
             
             if (chosenTranslator === correctTranslator) {
@@ -283,7 +334,7 @@
                 score++;
                 correctSynth.triggerAttackRelease("C5", "8n", Tone.now());
             } else {
-                feedbackEl.textContent = `Incorrect! The translator was ${correctTranslator}.`;
+                feedbackEl.textContent = `Incorrect!`;
                 feedbackEl.className = 'incorrect';
                 wrongSynth.triggerAttackRelease("A2", "8n", Tone.now());
                 if (window.navigator && window.navigator.vibrate) {
@@ -291,18 +342,16 @@
                 }
             }
             
-            document.getElementById('analysis-text').textContent = shuffledQuestions[currentQuestionIndex].analysis;
             document.getElementById('feedback-container').classList.remove('hidden');
-            
             Array.from(document.getElementById('choices').children).forEach(button => button.disabled = true);
             updateScoreboard();
 
-            setTimeout(nextQuestion, 3000); 
+            setTimeout(nextQuestion, 1500); 
         }
 
         function nextQuestion() {
             currentQuestionIndex++;
-            if (currentQuestionIndex < shuffledQuestions.length) {
+            if (currentQuestionIndex < shuffledQuestionPool.length) {
                 displayQuestion();
             } else {
                 endGame();
@@ -313,19 +362,17 @@
             clearInterval(timerInterval);
             const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
 
-            showScreen('end-screen-template');
-            document.getElementById('final-score').textContent = `Your Score: ${score} / ${shuffledQuestions.length}`;
-            document.getElementById('final-time').textContent = `Time: ${formatTime(elapsedTime)}`;
+            finalPlayerState = { score, time: elapsedTime };
+            showScreen('end-screen-template', finalPlayerState);
             
             const newScoreRef = await saveScoreToFirestore(playerName, score, elapsedTime);
-            await determineAndShowBonus(newScoreRef ? newScoreRef.id : null, score, elapsedTime);
+            await determineAndShowBonus(newScoreRef ? newScoreRef.id : null);
         }
         
         async function saveScoreToFirestore(name, finalScore, timeInSeconds) {
             if (!firebaseInitialized) return null;
             try {
                 const docRef = await addDoc(collection(db, scoreCollectionPath), { name, score: finalScore, time: timeInSeconds, timestamp: serverTimestamp() });
-                console.log("Score saved successfully with ID: ", docRef.id);
                 return docRef;
             } catch (e) {
                 console.error("Error adding document: ", e);
@@ -347,7 +394,7 @@
             }
         }
         
-        async function determineAndShowBonus(playerDocId, playerScore, playerTime) {
+        async function determineAndShowBonus(playerDocId) {
             const leaderboard = await getSortedLeaderboard();
             let playerRank = -1;
 
@@ -371,6 +418,37 @@
             document.getElementById('close-bonus-btn').addEventListener('click', () => {
                 document.querySelector('.bonus-popup').remove();
             });
+        }
+        
+        function showExplanation() {
+            showScreen('explanation-screen-template');
+            const contentEl = document.getElementById('explanation-content');
+            contentEl.innerHTML = ''; // Clear previous content
+
+            const poems = {
+                "Ngắm Trăng (Moonlight)": questionPool.slice(0, 4),
+                "Đi Đường (On The Road)": questionPool.slice(4, 8)
+            };
+
+            for (const [title, lines] of Object.entries(poems)) {
+                let poemHtml = `<div class="explanation-card">
+                                  <h3 class="text-2xl font-bold text-slate-800 mb-4">${title}</h3>`;
+                lines.forEach(line => {
+                    poemHtml += `<div class="mb-4">
+                                   <p class="font-semibold">${line.vietnamese}</p>
+                                   <div class="mt-2 pl-4">
+                                       <p><strong class="text-blue-600">A. Palmer:</strong> ${line.palmer.translation}</p>
+                                       <p class="explanation-analysis">${line.palmer.analysis}</p>
+                                   </div>
+                                   <div class="mt-2 pl-4">
+                                       <p><strong class="text-red-600">H.S. Thông:</strong> ${line.thong.translation}</p>
+                                       <p class="explanation-analysis">${line.thong.analysis}</p>
+                                   </div>
+                               </div>`;
+                });
+                poemHtml += `</div>`;
+                contentEl.innerHTML += poemHtml;
+            }
         }
 
         async function showLeaderboard() {
@@ -405,7 +483,7 @@
 
         function updateScoreboard() {
             document.getElementById('score').textContent = `Score: ${score}`;
-            document.getElementById('question-counter').textContent = `Question ${currentQuestionIndex + 1} / ${shuffledQuestions.length}`;
+            document.getElementById('question-counter').textContent = `Question ${currentQuestionIndex + 1} / ${shuffledQuestionPool.length}`;
         }
         
         function updateTimer() {
@@ -424,3 +502,4 @@
     </script>
 </body>
 </html>
+
