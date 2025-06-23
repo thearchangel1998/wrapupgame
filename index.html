@@ -51,7 +51,7 @@
         #vietnamese-line { font-size: 1rem; color: #64748b; margin-bottom: 1rem; }
         #analysis-box { background-color: #f1f5f9; border-radius: 0.75rem; padding: 1rem; margin-top: 1.5rem; text-align: left; border-left: 4px solid #1e3a8a; font-style: italic; } /* Dark Blue */
         .timer { font-weight: 600; color: #475569; }
-        #player-name-input {
+        #player-name-input, #access-code-input {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #cbd5e1;
@@ -85,9 +85,16 @@
     </div>
     
     <!-- Templates for Screens -->
+    <template id="login-screen-template">
+        <h1 class="text-4xl font-bold text-slate-800 mb-4">Welcome!</h1>
+        <p class="text-lg text-slate-600 mb-6">Please enter the access code to continue.</p>
+        <input type="password" id="access-code-input" class="w-full p-3 border border-slate-300 rounded-lg text-lg mb-4" placeholder="Access Code...">
+        <button id="login-btn" class="btn btn-primary text-xl">Continue</button>
+    </template>
+
     <template id="start-screen-template">
         <h1 class="text-4xl font-bold text-slate-800 mb-4">Game: Guess the Translator</h1>
-        <p class="text-lg text-slate-600 mb-6">Enter your real name to start and get on the leaderboard!</p>
+        <p class="text-lg text-slate-600 mb-6">Enter your name to start and get on the leaderboard!</p>
         <input type="text" id="player-name-input" class="w-full p-3 border border-slate-300 rounded-lg text-lg mb-4" placeholder="Enter your full name...">
         <button id="start-btn" class="btn btn-primary text-xl">Start!</button>
         <button id="leaderboard-btn" class="btn btn-secondary">View Leaderboard</button>
@@ -211,7 +218,7 @@
             },
             {
                 vietnamese: "Hết lớp núi này lại tiếp đến lớp núi khác;",
-                palmer: { translation: '"After we climb one mountain, another looms into view:"', analysis: "Analysis: 'Looms into view' is a dynamic and poetic verb choice that conveys the daunting challenge." },
+                palmer: { translation: '"After we climb one mountain, another looms into view:"', analysis: "Analysis: 'Looms into view' is a dynamic and poetic choice that conveys the daunting challenge." },
                 thong: { translation: '"One mountain range, another mountain range . . ."', analysis: "Analysis: The repetition and ellipsis maintain the cumulative feel of the original, mirroring its structure." }
             },
             {
@@ -254,6 +261,7 @@
         }
 
         function addEventListeners() {
+            const loginBtn = document.getElementById('login-btn');
             const startBtn = document.getElementById('start-btn');
             const restartBtn = document.getElementById('restart-btn');
             const leaderboardBtn = document.getElementById('leaderboard-btn');
@@ -262,8 +270,21 @@
             const explanationBtn = document.getElementById('explanation-btn');
             const backToEndBtn = document.getElementById('back-to-end-btn');
 
-            if (startBtn) startBtn.addEventListener('click', startGame);
-            if (restartBtn) restartBtn.addEventListener('click', () => showScreen('start-screen-template'));
+            if (loginBtn) loginBtn.addEventListener('click', handleLogin);
+            if (startBtn) {
+                 if (localStorage.getItem('translatorGamePlayed') === 'true') {
+                    startBtn.disabled = true;
+                    startBtn.textContent = 'Already Played';
+                    document.getElementById('player-name-input').disabled = true;
+                    document.getElementById('player-name-input').value = 'You have completed your turn on this browser.';
+                } else {
+                    startBtn.addEventListener('click', startGame);
+                }
+            }
+            if (restartBtn) restartBtn.addEventListener('click', () => {
+                localStorage.removeItem('translatorGamePlayed');
+                showScreen('login-screen-template');
+            });
             if (leaderboardBtn) {
                 leaderboardBtn.addEventListener('click', showLeaderboard);
                 if (!firebaseInitialized) {
@@ -272,9 +293,18 @@
                 }
             }
             if (viewLeaderboardEndBtn) viewLeaderboardEndBtn.addEventListener('click', showLeaderboard);
-            if (backToStartBtn) backToStartBtn.addEventListener('click', () => showScreen('start-screen-template'));
+            if (backToStartBtn) backToStartBtn.addEventListener('click', () => showScreen('login-screen-template'));
             if(explanationBtn) explanationBtn.addEventListener('click', showExplanation);
             if(backToEndBtn) backToEndBtn.addEventListener('click', () => showScreen('end-screen-template', finalPlayerState));
+        }
+        
+        function handleLogin() {
+            const codeInput = document.getElementById('access-code-input');
+            if (codeInput.value === '24121') {
+                showScreen('start-screen-template');
+            } else {
+                alert('Incorrect access code. Please try again.');
+            }
         }
 
         async function startGame() {
@@ -286,6 +316,8 @@
                 alert("Please enter your name to start!");
                 return;
             }
+
+            localStorage.setItem('translatorGamePlayed', 'true');
 
             currentQuestionIndex = 0;
             score = 0;
@@ -339,7 +371,7 @@
                 feedbackEl.className = 'incorrect';
                 wrongSynth.triggerAttackRelease("A2", "8n", Tone.now());
                 if (window.navigator && window.navigator.vibrate) {
-                    navigator.vibrate([200, 100, 200]); // Stronger vibration pattern
+                    navigator.vibrate([200, 100, 200]);
                 }
             }
             
@@ -498,9 +530,8 @@
             return `${minutes}:${seconds}`;
         }
         
-        showScreen('start-screen-template');
+        showScreen('login-screen-template');
 
     </script>
 </body>
 </html>
-
