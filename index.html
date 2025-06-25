@@ -74,6 +74,7 @@
             transform: scale(0.95); animation: scaleIn 0.3s ease forwards;
         }
         #bonus-title { color: #1e3a8a; }
+        #troll-title { color: #dc2626; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
@@ -152,9 +153,20 @@
     <template id="bonus-popup-template">
         <div class="bonus-popup">
             <div class="bonus-popup-content">
-                <h2 id="bonus-title" class="text-3xl font-bold mb-4">Congratulations!</h2>
+                <h2 id="bonus-title" class="text-3xl font-bold mb-2">Congratulations!</h2>
+                <p id="rank-message" class="text-2xl font-bold text-amber-500 mb-4"></p>
                 <p id="bonus-message" class="text-xl mb-6"></p>
                 <button id="close-bonus-btn" class="btn btn-primary">OK</button>
+            </div>
+        </div>
+    </template>
+    
+    <template id="troll-popup-template">
+        <div class="bonus-popup">
+            <div class="bonus-popup-content">
+                <h2 id="troll-title" class="text-3xl font-bold mb-4">Lêu lêu!</h2>
+                <p class="text-xl mb-6">Bạn không còn trong top 3 nữa rồi!</p>
+                <button id="close-troll-btn" class="btn btn-secondary">OK</button>
             </div>
         </div>
     </template>
@@ -218,7 +230,7 @@
             },
             {
                 vietnamese: "Hết lớp núi này lại tiếp đến lớp núi khác;",
-                palmer: { translation: '"After we climb one mountain, another looms into view:"', analysis: "Analysis: 'Looms into view' is a dynamic and poetic choice that conveys the daunting challenge." },
+                palmer: { translation: '"After we climb one mountain, another looms into view:"', analysis: "Analysis: 'Looms into view' is a dynamic and poetic verb choice that conveys the daunting challenge." },
                 thong: { translation: '"One mountain range, another mountain range . . ."', analysis: "Analysis: The repetition and ellipsis maintain the cumulative feel of the original, mirroring its structure." }
             },
             {
@@ -282,7 +294,6 @@
                 }
             }
             if (restartBtn) restartBtn.addEventListener('click', () => {
-                localStorage.removeItem('translatorGamePlayed');
                 showScreen('login-screen-template');
             });
             if (leaderboardBtn) {
@@ -317,6 +328,7 @@
                 return;
             }
 
+            localStorage.setItem('translatorGamePlayerName', playerName);
             localStorage.setItem('translatorGamePlayed', 'true');
 
             currentQuestionIndex = 0;
@@ -399,7 +411,10 @@
             showScreen('end-screen-template', finalPlayerState);
             
             const newScoreRef = await saveScoreToFirestore(playerName, score, elapsedTime);
-            await determineAndShowBonus(newScoreRef ? newScoreRef.id : null);
+            const playerDocId = newScoreRef ? newScoreRef.id : null;
+            
+            localStorage.setItem('playerDocId', playerDocId); // Save ID for later checks
+            await determineAndShowBonus(playerDocId);
         }
         
         async function saveScoreToFirestore(name, finalScore, timeInSeconds) {
@@ -435,16 +450,23 @@
                 const playerIndex = leaderboard.findIndex(entry => entry.id === playerDocId);
                  if (playerIndex !== -1) {
                     playerRank = playerIndex + 1;
+                    localStorage.setItem('lastKnownRank', playerRank);
                 }
             }
             
             let bonusMessage = "Thank you for your cooperation, 1 BONUS for you";
-            if (playerRank !== -1 && playerRank <= 3) {
-                bonusMessage = "Thank you for your cooperation, 2 BONUSES for you";
+            let rankMessage = "";
+
+            if (playerRank !== -1) {
+                rankMessage = `You are rank #${playerRank}!`;
+                if (playerRank <= 3) {
+                     bonusMessage = "Thank you for your cooperation, 2 BONUSES for you";
+                }
             }
             
             const popupTemplate = document.getElementById('bonus-popup-template');
             const popupNode = popupTemplate.content.cloneNode(true);
+            popupNode.getElementById('rank-message').textContent = rankMessage;
             popupNode.getElementById('bonus-message').textContent = bonusMessage;
             document.body.appendChild(popupNode);
 
@@ -494,6 +516,22 @@
             leaderboardBody.innerHTML = '<tr><td colspan="4" class="p-4 text-center">Loading...</td></tr>';
             
             const scores = await getSortedLeaderboard();
+            const playerDocId = localStorage.getItem('playerDocId');
+            const lastKnownRank = parseInt(localStorage.getItem('lastKnownRank'), 10);
+
+            if (playerDocId && lastKnownRank && lastKnownRank <= 3) {
+                 const newRank = scores.findIndex(entry => entry.id === playerDocId) + 1;
+                 if (newRank > 3 || newRank === 0) {
+                     const popupTemplate = document.getElementById('troll-popup-template');
+                     const popupNode = popupTemplate.content.cloneNode(true);
+                     document.body.appendChild(popupNode);
+                     document.getElementById('close-troll-btn').addEventListener('click', () => {
+                        document.querySelector('.bonus-popup').remove();
+                     });
+                 }
+                 localStorage.setItem('lastKnownRank', newRank);
+            }
+
 
             leaderboardBody.innerHTML = '';
             if (scores.length === 0) {
